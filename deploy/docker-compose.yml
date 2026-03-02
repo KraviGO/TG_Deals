@@ -1,0 +1,165 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: marketplace-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: marketplace-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  identity:
+    build:
+      context: ../backend
+      dockerfile: src/Services/Identity/Identity.Host/Dockerfile
+    container_name: marketplace-identity
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=identity_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+    ports:
+      - "${IDENTITY_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  publishers:
+    build:
+      context: ../backend
+      dockerfile: src/Services/Publishers/Publishers.Host/Dockerfile
+    container_name: marketplace-publishers
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=publishers_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+    ports:
+      - "${PUBLISHERS_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  channelcatalog:
+    build:
+      context: ../backend
+      dockerfile: src/Services/ChannelCatalog/ChannelCatalog.Host/Dockerfile
+    container_name: marketplace-channelcatalog
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=catalog_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      ServiceAuth__Token: ${SERVICE_TOKEN}
+      ServiceAuth__PathPrefix: /api/v1/internal
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+    ports:
+      - "${CATALOG_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payments:
+    build:
+      context: ../backend
+      dockerfile: src/Services/Payments/Payments.Host/Dockerfile
+    container_name: marketplace-payments
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=payments_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      ServiceAuth__Token: ${SERVICE_TOKEN}
+      ServiceAuth__PathPrefix: /api/v1/internal
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+      YooKassa__ShopId: ${YOOKASSA_SHOP_ID}
+      YooKassa__SecretKey: ${YOOKASSA_SECRET_KEY}
+      YooKassa__ReturnUrl: ${YOOKASSA_RETURN_URL}
+      Webhooks__YooKassa__Secret: ${YOOKASSA_WEBHOOK_SECRET}
+    ports:
+      - "${PAYMENTS_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  deals:
+    build:
+      context: ../backend
+      dockerfile: src/Services/Deals/Deals.Host/Dockerfile
+    container_name: marketplace-deals
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=deals_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      ServiceAuth__Token: ${SERVICE_TOKEN}
+      ServiceAuth__PathPrefix: /api/v1/internal
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+      WalletClient__BaseUrl: http://payments:8080
+      PaymentClient__BaseUrl: http://payments:8080
+      CatalogClient__BaseUrl: http://channelcatalog:8080
+    ports:
+      - "${DEALS_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      payments:
+        condition: service_started
+      channelcatalog:
+        condition: service_started
+
+volumes:
+  pgdata:

@@ -1,0 +1,10 @@
+.DS_Store
+
+bin/
+obj/
+
+/local
+*.env
+
+.idea/
+.vs/
