@@ -1,27 +1,28 @@
 using ChannelCatalog.Presentation.Internal.Dtos;
-using ChannelCatalog.UseCases.Abstractions.Persistence;
+using ChannelCatalog.UseCases.Channels.GetInternalChannelById;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ChannelCatalog.Presentation.Internal;
 
 [ApiController]
 [Route("api/v1/internal/channels")]
+[Authorize(AuthenticationSchemes = "ServiceToken")]
 public sealed class InternalChannelsController : ControllerBase
 {
-    private readonly ICatalogDbContext _db;
-
-    public InternalChannelsController(ICatalogDbContext db) => _db = db;
-
     [HttpGet("{channelId:guid}")]
-    public async Task<ActionResult<InternalChannelInfoDto>> Get([FromRoute] Guid channelId, CancellationToken ct)
+    public async Task<ActionResult<InternalChannelInfoDto>> Get(
+        [FromRoute] Guid channelId,
+        [FromServices] GetInternalChannelByIdHandler handler,
+        CancellationToken ct)
     {
-        var ch = await _db.CatalogChannels
-            .Where(x => x.ChannelId == channelId)
-            .Select(x => new InternalChannelInfoDto(x.ChannelId, x.PublisherUserId, x.IntakeMode, x.OwnershipStatus))
-            .FirstOrDefaultAsync(ct);
-
-        if (ch is null) return NotFound();
-        return Ok(ch);
+        var result = await handler.Handle(new GetInternalChannelByIdQuery(channelId), ct);
+        if (result is null) return NotFound();
+        return Ok(new InternalChannelInfoDto(
+            result.ChannelId,
+            result.PublisherUserId,
+            result.TelegramChannelId,
+            result.IntakeMode,
+            result.OwnershipStatus));
     }
 }

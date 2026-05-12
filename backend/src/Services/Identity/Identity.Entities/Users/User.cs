@@ -2,9 +2,12 @@ using Identity.Entities.Common;
 
 namespace Identity.Entities.Users;
 
+/// <summary>
+/// Пользователь marketplace с ролью и статусом доступа.
+/// </summary>
 public sealed class User : Entity
 {
-    private User() { } // EF
+    private User() { }
 
     public string Email { get; private set; } = default!;
     public string PasswordHash { get; private set; } = default!;
@@ -12,6 +15,9 @@ public sealed class User : Entity
     public UserStatus Status { get; private set; } = UserStatus.Active;
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// Создает активного пользователя с нормализованным email.
+    /// </summary>
     public static User Create(string email, string passwordHash, UserRole role)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -27,5 +33,8 @@ public sealed class User : Entity
         };
     }
 
+    /// <summary>
+    /// Блокирует вход пользователя.
+    /// </summary>
     public void Suspend() => Status = UserStatus.Suspended;
 }

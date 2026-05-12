@@ -32,6 +32,10 @@ namespace Deals.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("advertiser_user_id");
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
                     b.Property<Guid>("ChannelId")
                         .HasColumnType("uuid")
                         .HasColumnName("channel_id");
@@ -39,6 +43,12 @@ namespace Deals.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
 
                     b.Property<Guid>("DealId")
                         .HasColumnType("uuid")
@@ -48,23 +58,34 @@ namespace Deals.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("desired_publish_at_utc");
 
-                    b.Property<Guid?>("PaymentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("payment_id");
-
-                    b.Property<string>("PaymentState")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_state");
+                    b.Property<int>("FundingStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("funding_status");
 
                     b.Property<string>("PostText")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("post_text");
 
+                    b.Property<string>("PostUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("post_url");
+
+                    b.Property<DateTimeOffset?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<string>("PublisherComment")
+                        .HasColumnType("text")
+                        .HasColumnName("publisher_comment");
+
                     b.Property<Guid>("PublisherUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("publisher_user_id");
+
+                    b.Property<Guid?>("ReservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reservation_id");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -85,7 +106,78 @@ namespace Deals.Infrastructure.Migrations
 
                     b.HasIndex("PublisherUserId");
 
+                    b.HasIndex("ReservationId")
+                        .IsUnique();
+
                     b.ToTable("deals", (string)null);
+                });
+
+            modelBuilder.Entity("Deals.Entities.Disputes.DealDispute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deal_id");
+
+                    b.Property<Guid>("DisputeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dispute_id");
+
+                    b.Property<string>("OpenedByRole")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("opened_by_role");
+
+                    b.Property<Guid>("OpenedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_user_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<int?>("ResolutionAction")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution_action");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasColumnType("text")
+                        .HasColumnName("resolution_note");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DealId")
+                        .IsUnique();
+
+                    b.HasIndex("DisputeId")
+                        .IsUnique();
+
+                    b.ToTable("deal_disputes", (string)null);
                 });
 #pragma warning restore 612, 618
         }

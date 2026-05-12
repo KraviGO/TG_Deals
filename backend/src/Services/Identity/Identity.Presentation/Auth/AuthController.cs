@@ -4,6 +4,7 @@ using Identity.Presentation.Auth.Dtos;
 using Identity.UseCases.Auth.Login;
 using Identity.UseCases.Auth.Me;
 using Identity.UseCases.Auth.Register;
+using Marketplace.Kernel.Results;
 using Identity.UseCases.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,11 +26,16 @@ public sealed class AuthController : ControllerBase
         _me = me;
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<RegisterResponseDto>> Register([FromBody] RegisterRequestDto dto, CancellationToken ct)
     {
-        if (!Enum.TryParse<UserRole>(dto.Role, ignoreCase: true, out var role))
+        // Саморегистрация разрешена только для Advertiser и Publisher.
+        if (!Enum.TryParse<UserRole>(dto.Role, ignoreCase: true, out var role) || 
+            (role != UserRole.Advertiser && role != UserRole.Publisher))
+        {
             return BadRequest(new { error = "InvalidRole" });
+        }
 
         var cmd = new RegisterCommand(dto.Email, dto.Password, role);
         var res = await _register.Handle(cmd, ct);
@@ -44,6 +50,7 @@ public sealed class AuthController : ControllerBase
         return Created("", new RegisterResponseDto(res.Value!.UserId, res.Value.Email, res.Value.Role.ToString()));
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto dto, CancellationToken ct)
     {
@@ -59,6 +66,7 @@ public sealed class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<MeResponseDto>> Me(CancellationToken ct)
     {
+        // JWT middleware оставляет короткий sub, часть тестов передает NameIdentifier.
         var sub = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (!Guid.TryParse(sub, out var userId))
             return Unauthorized(new { error = "InvalidToken" });

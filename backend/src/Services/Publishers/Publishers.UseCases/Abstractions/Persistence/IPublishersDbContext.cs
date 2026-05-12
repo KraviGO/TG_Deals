@@ -8,5 +8,6 @@ public interface IPublishersDbContext
 
     Task AddChannelAsync(Channel channel, CancellationToken ct);
     Task<Channel?> FindChannelForOwnerAsync(Guid publisherUserId, Guid channelId, CancellationToken ct);
+    Task<Channel?> FindChannelAsync(Guid channelId, CancellationToken ct);
     Task<int> SaveChangesAsync(CancellationToken ct);
 }

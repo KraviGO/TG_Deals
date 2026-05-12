@@ -9,6 +9,9 @@ using Publishers.Infrastructure.Persistence;
 
 namespace Publishers.Infrastructure.Outbox;
 
+/// <summary>
+/// Публикует pending outbox messages в RabbitMQ.
+/// </summary>
 public sealed class OutboxPublisherWorker : BackgroundService
 {
     private const int MaxAttempts = 20;
@@ -39,12 +42,17 @@ public sealed class OutboxPublisherWorker : BackgroundService
                 var db = scope.ServiceProvider.GetRequiredService<PublishersDbContext>();
                 var now = DateTimeOffset.UtcNow;
 
+                // SKIP LOCKED разделяет outbox batch между несколькими worker'ами.
                 var batch = await db.OutboxMessages
-                    .Where(x => x.Status == OutboxMessageStatus.Pending)
-                    .Where(x => x.AttemptCount < MaxAttempts)
-                    .Where(x => x.NextAttemptAt == null || x.NextAttemptAt <= now)
-                    .OrderBy(x => x.OccurredAt)
-                    .Take(20)
+                    .FromSqlInterpolated($@"
+                        SELECT * FROM outbox_messages 
+                        WHERE status = {(int)OutboxMessageStatus.Pending} 
+                          AND attempt_count < {MaxAttempts} 
+                          AND (next_attempt_at IS NULL OR next_attempt_at <= {now})
+                        ORDER BY occurred_at
+                        LIMIT 20 
+                        FOR UPDATE SKIP LOCKED
+                    ")
                     .ToListAsync(stoppingToken);
 
                 if (batch.Count == 0)

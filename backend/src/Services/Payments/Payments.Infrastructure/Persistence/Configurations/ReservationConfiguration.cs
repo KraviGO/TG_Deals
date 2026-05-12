@@ -19,6 +19,8 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
 
         b.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
         b.HasIndex(x => x.UserId);
+        b.Property(x => x.PublisherUserId).HasColumnName("publisher_user_id").IsRequired();
+        b.HasIndex(x => x.PublisherUserId);
 
         b.Property(x => x.Amount).HasColumnName("amount").HasColumnType("numeric(18,2)").IsRequired();
         b.Property(x => x.Currency).HasColumnName("currency").HasMaxLength(3).IsRequired();

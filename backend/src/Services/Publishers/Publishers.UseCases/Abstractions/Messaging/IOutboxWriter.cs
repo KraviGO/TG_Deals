@@ -2,14 +2,5 @@ namespace Publishers.UseCases.Abstractions.Messaging;
 
 public interface IOutboxWriter
 {
-    Task EnqueueAsync(OutboxEnvelope message, CancellationToken ct);
+    Task EnqueueAsync<T>(string exchange, string routingKey, string eventType, int schemaVersion, T payload, string? correlationId, CancellationToken ct);
 }
-
-public sealed record OutboxEnvelope(
-    string EventType,
-    int Version,
-    string Exchange,
-    string RoutingKey,
-    string PayloadJson,
-    DateTimeOffset OccurredAtUtc
-);

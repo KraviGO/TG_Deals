@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using Deals.UseCases.Abstractions.Catalog;
-using Microsoft.Extensions.Configuration;
+using Marketplace.ServiceAuth.Options;
 using Microsoft.Extensions.Options;
 
 namespace Deals.Infrastructure.Catalog;
@@ -10,13 +10,15 @@ public sealed class CatalogClient : ICatalogClient
     private readonly HttpClient _http;
     private readonly string _serviceToken;
 
-    public CatalogClient(HttpClient http, IOptions<CatalogClientOptions> opt, IConfiguration cfg)
+    public CatalogClient(HttpClient http, IOptions<CatalogClientOptions> opt, IOptions<ServiceAuthClientOptions> tokenOpt)
     {
         _http = http;
         _http.BaseAddress = new Uri(opt.Value.BaseUrl);
 
-        _serviceToken = cfg.GetSection("ServiceAuth")["Token"]
-                        ?? throw new InvalidOperationException("ServiceAuth:Token missing for Deals.");
+        _serviceToken = tokenOpt.Value.Token
+            is { Length: > 0 } t
+            ? t
+            : throw new InvalidOperationException("ServiceAuth:Token missing for Deals CatalogClient.");
     }
 
     public async Task<CatalogChannelInfo?> GetChannelAsync(Guid channelId, CancellationToken ct)

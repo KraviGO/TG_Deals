@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Publishers.Entities\Publishers.Entities.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Contracts\Marketplace.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Kernel\Marketplace.Kernel.csproj" />
   </ItemGroup>
 
   <ItemGroup>

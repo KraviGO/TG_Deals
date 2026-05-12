@@ -42,11 +42,22 @@ namespace ChannelCatalog.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("intake_mode");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("language");
+
                     b.Property<string>("OwnershipStatus")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("ownership_status");
+
+                    b.Property<decimal>("PricePerPostRub")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price_per_post_rub");
 
                     b.Property<Guid>("PublisherUserId")
                         .HasColumnType("uuid")
@@ -64,6 +75,12 @@ namespace ChannelCatalog.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("title");
 
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("topic");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -75,7 +92,13 @@ namespace ChannelCatalog.Infrastructure.Migrations
 
                     b.HasIndex("IntakeMode");
 
+                    b.HasIndex("Language");
+
                     b.HasIndex("OwnershipStatus");
+
+                    b.HasIndex("PricePerPostRub");
+
+                    b.HasIndex("Topic");
 
                     b.ToTable("catalog_channels", (string)null);
                 });

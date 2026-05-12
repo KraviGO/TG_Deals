@@ -70,4 +70,28 @@ public sealed class WalletTransaction : Entity
             DealId = dealId,
             CreatedAt = nowUtc
         };
+
+    public static WalletTransaction CreateManualCredit(Guid userId, decimal amount, string currency, DateTimeOffset nowUtc)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            TxId = Guid.NewGuid(),
+            UserId = userId,
+            Type = WalletTransactionType.ManualCredit,
+            Amount = amount,
+            Currency = currency,
+            CreatedAt = nowUtc
+        };
+
+    public static WalletTransaction CreateWithdrawal(Guid userId, decimal amount, string currency, DateTimeOffset nowUtc)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            TxId = Guid.NewGuid(),
+            UserId = userId,
+            Type = WalletTransactionType.WithdrawalCompleted,
+            Amount = amount,
+            Currency = currency,
+            CreatedAt = nowUtc
+        };
 }

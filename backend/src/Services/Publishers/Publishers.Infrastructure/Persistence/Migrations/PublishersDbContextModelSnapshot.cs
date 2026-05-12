@@ -108,9 +108,20 @@ namespace Publishers.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("intake_mode");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("language");
+
                     b.Property<int>("OwnershipStatus")
                         .HasColumnType("integer")
                         .HasColumnName("ownership_status");
+
+                    b.Property<decimal>("PricePerPostRub")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price_per_post_rub");
 
                     b.Property<Guid>("PublisherUserId")
                         .HasColumnType("uuid")
@@ -128,23 +139,26 @@ namespace Publishers.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("title");
 
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("topic");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
-
-                    b.Property<string>("VerificationCode")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("verification_code");
-
-                    b.Property<DateTimeOffset?>("VerificationExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("verification_expires_at");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ChannelId")
                         .IsUnique();
+
+                    b.HasIndex("Language");
+
+                    b.HasIndex("PricePerPostRub");
+
+                    b.HasIndex("Topic");
 
                     b.HasIndex("PublisherUserId", "TelegramChannelId")
                         .IsUnique();

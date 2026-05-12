@@ -1,0 +1,22 @@
+# VCS and IDE
+.git
+.gitignore
+.vs
+.idea
+.vscode
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+
+# User-specific files
+**/*.user
+**/*.suo
+**/*.cache
+**/*.tmp
+
+# Misc
+*.swp
+*.DS_Store

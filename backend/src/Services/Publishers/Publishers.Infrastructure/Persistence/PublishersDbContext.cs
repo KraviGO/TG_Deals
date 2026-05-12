@@ -20,6 +20,9 @@ public sealed class PublishersDbContext : DbContext, IPublishersDbContext
             c => c.PublisherUserId == publisherUserId && c.ChannelId == new ChannelId(channelId),
             ct);
 
+    public Task<Channel?> FindChannelAsync(Guid channelId, CancellationToken ct)
+        => ChannelsSet.FirstOrDefaultAsync(c => c.ChannelId == new ChannelId(channelId), ct);
+
     Task<int> IPublishersDbContext.SaveChangesAsync(CancellationToken ct) => base.SaveChangesAsync(ct);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

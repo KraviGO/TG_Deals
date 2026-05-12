@@ -4,5 +4,7 @@ public sealed record CreateDealCommand(
     Guid AdvertiserUserId,
     Guid ChannelId,
     string PostText,
-    DateTimeOffset DesiredPublishAtUtc
+    DateTimeOffset DesiredPublishAtUtc,
+    decimal Amount,
+    string Currency
 );

@@ -7,8 +7,12 @@ public sealed class DealsDbContextFactory : IDesignTimeDbContextFactory<DealsDbC
 {
     public DealsDbContext CreateDbContext(string[] args)
     {
+        var connectionString =
+            Environment.GetEnvironmentVariable("ConnectionStrings__Database")
+            ?? "Host=localhost;Port=5432;Database=deals_db;Username=marketplace;Password=marketplace";
+
         var opt = new DbContextOptionsBuilder<DealsDbContext>()
-            .UseNpgsql("Host=localhost;Port=5432;Database=deals_db;Username=marketplace;Password=marketplace")
+            .UseNpgsql(connectionString)
             .Options;
 
         return new DealsDbContext(opt);

@@ -2,6 +2,7 @@ using Identity.Infrastructure.Auth;
 using Identity.Infrastructure.Persistence;
 using Identity.UseCases.Abstractions.Auth;
 using Identity.UseCases.Abstractions.Persistence;
+using Marketplace.Security.Jwt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

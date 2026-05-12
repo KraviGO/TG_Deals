@@ -2,6 +2,10 @@ using Payments.Entities.Common;
 
 namespace Payments.Entities.Wallet;
 
+/// <summary>
+/// Кошелек рекламодателя.
+/// Available оплачивает новые сделки, Reserved хранит резервы по принятым сделкам.
+/// </summary>
 public sealed class Wallet : Entity
 {
     private Wallet() { }
@@ -16,6 +20,9 @@ public sealed class Wallet : Entity
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>
+    /// Создает пустой кошелек пользователя.
+    /// </summary>
     public static Wallet Create(Guid userId, string currency, DateTimeOffset nowUtc)
     {
         if (userId == Guid.Empty) throw new ArgumentException("UserId required");
@@ -36,6 +43,8 @@ public sealed class Wallet : Entity
     public void Credit(decimal amount, DateTimeOffset nowUtc)
     {
         if (amount <= 0) throw new ArgumentException("amount must be > 0");
+
+        // Пополнение увеличивает Available.
         Available += amount;
         UpdatedAt = nowUtc;
     }
@@ -45,6 +54,7 @@ public sealed class Wallet : Entity
         if (amount <= 0) throw new ArgumentException("amount must be > 0");
         if (Available < amount) throw new InvalidOperationException("InsufficientFunds");
 
+        // Резерв переносит деньги из Available в Reserved.
         Available -= amount;
         Reserved += amount;
         UpdatedAt = nowUtc;
@@ -55,6 +65,7 @@ public sealed class Wallet : Entity
         if (amount <= 0) throw new ArgumentException("amount must be > 0");
         if (Reserved < amount) throw new InvalidOperationException("InvalidReservedAmount");
 
+        // Release возвращает деньги из Reserved в Available.
         Reserved -= amount;
         Available += amount;
         UpdatedAt = nowUtc;
@@ -65,7 +76,17 @@ public sealed class Wallet : Entity
         if (amount <= 0) throw new ArgumentException("amount must be > 0");
         if (Reserved < amount) throw new InvalidOperationException("InvalidReservedAmount");
 
+        // Capture списывает деньги из Reserved.
         Reserved -= amount;
+        UpdatedAt = nowUtc;
+    }
+
+    public void WithdrawFunds(decimal amount, DateTimeOffset nowUtc)
+    {
+        if (amount <= 0) throw new ArgumentException("amount must be > 0");
+        if (Available < amount) throw new InvalidOperationException("InsufficientFunds");
+
+        Available -= amount;
         UpdatedAt = nowUtc;
     }
 }

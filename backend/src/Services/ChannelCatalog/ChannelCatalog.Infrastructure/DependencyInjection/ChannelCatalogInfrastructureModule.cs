@@ -22,6 +22,7 @@ public static class ChannelCatalogInfrastructureModule
 
         services.AddScoped<IEventHandler, ChannelRegisteredHandler>();
         services.AddScoped<IEventHandler, ChannelOwnershipVerifiedHandler>();
+        services.AddScoped<IEventHandler, ChannelModerationChangedHandler>();
 
         services.AddHostedService<PublishersEventsConsumer>();
 

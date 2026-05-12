@@ -1,50 +1,38 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Payments.UseCases.Abstractions.YooKassa;
-using Payments.UseCases.TopUps.ProcessTopUpWebhook;
-using Payments.UseCases.Payments.ProcessWebhook;
+using Payments.UseCases.Webhooks.ProcessYooKassaWebhook;
 
 namespace Payments.Presentation.Webhooks;
 
 [ApiController]
 [Route("api/v1/webhooks/yookassa")]
-[AllowAnonymous] // webhook должен быть доступен без JWT; защиту делает секрет в URL
+[AllowAnonymous]
 public sealed class YooKassaWebhookController : ControllerBase
 {
-    private readonly string _secret;
-
-    public YooKassaWebhookController(IConfiguration cfg)
-    {
-        _secret = cfg["Webhooks:YooKassa:Secret"] ?? throw new InvalidOperationException("Webhooks:YooKassa:Secret missing");
-    }
-
-    [HttpPost("{secret}")]
+    [HttpPost]
     public async Task<IActionResult> Receive(
-        [FromRoute] string secret,
         [FromBody] YooKassaWebhookNotification body,
-        [FromServices] ProcessTopUpWebhookHandler topupHandler,
-        [FromServices] ProcessWebhookHandler legacyPaymentsHandler,
+        [FromServices] ProcessYooKassaWebhookHandler handler,
         CancellationToken ct)
     {
-        if (!FixedTimeEquals(secret, _secret))
-            return Unauthorized();
+        var messageId = Request.Headers.TryGetValue("X-Request-Id", out var requestId)
+            ? requestId.ToString()
+            : null;
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        // Сначала обрабатываем TopUp (wallet), затем legacy payments (пока не вычищены)
-        var topupRes = await topupHandler.Handle(new ProcessTopUpWebhookCommand(body), ct);
-        if (!topupRes.IsSuccess) return BadRequest(new { error = topupRes.Error });
+        var res = await handler.Handle(new ProcessYooKassaWebhookCommand(
+            Notification: body,
+            MessageId: messageId,
+            RemoteIp: remoteIp), ct);
 
-        var res = await legacyPaymentsHandler.Handle(new ProcessWebhookCommand(body), ct);
-        if (!res.IsSuccess) return BadRequest(new { error = res.Error });
+        if (!res.IsSuccess)
+        {
+            if (res.Error is "UnauthorizedWebhookIp" or "UnauthorizedWebhookStatus")
+                return Unauthorized(new { error = res.Error });
+            return BadRequest(new { error = res.Error });
+        }
 
         return Ok();
-    }
-
-    private static bool FixedTimeEquals(string a, string b)
-    {
-        if (a.Length != b.Length) return false;
-        var diff = 0;
-        for (var i = 0; i < a.Length; i++) diff |= a[i] ^ b[i];
-        return diff == 0;
     }
 }

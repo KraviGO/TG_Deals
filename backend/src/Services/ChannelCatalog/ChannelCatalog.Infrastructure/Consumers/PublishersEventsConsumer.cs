@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ChannelCatalog.Infrastructure.Consumers.Publishers;
 using ChannelCatalog.Infrastructure.Inbox;
 using ChannelCatalog.Infrastructure.Persistence;
@@ -38,6 +39,7 @@ public sealed class PublishersEventsConsumer : BackgroundService
     {
         _stoppingToken = stoppingToken;
 
+        // Проекция каталога строится из publishers.channel.* событий.
         var factory = new ConnectionFactory
         {
             HostName = _opt.Host,
@@ -56,8 +58,9 @@ public sealed class PublishersEventsConsumer : BackgroundService
 
         const string queue = "catalog.events";
 
-        _ch.QueueBind(queue, "marketplace.events", "publishers.channel.registered");
-        _ch.QueueBind(queue, "marketplace.events", "publishers.channel.ownership_verified");
+        _ch.QueueBind(queue, "marketplace.events", "publishers.channel.registered.v1");
+        _ch.QueueBind(queue, "marketplace.events", "publishers.channel.ownership_verified.v1");
+        _ch.QueueBind(queue, "marketplace.events", "publishers.channel.moderation_changed.v1");
 
         _ch.BasicQos(0, prefetchCount: 10, global: false);
 
@@ -74,12 +77,30 @@ public sealed class PublishersEventsConsumer : BackgroundService
     {
         try
         {
-            var payload = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var raw = Encoding.UTF8.GetString(ea.Body.ToArray());
             var routingKey = ea.RoutingKey;
 
-            var messageId = ea.BasicProperties?.MessageId;
+            // Envelope дает MessageId для inbox и Payload для обработчика.
+            string payload;
+            string? messageId;
+            try
+            {
+                var envelope = JsonNode.Parse(raw);
+                var payloadNode = envelope?["Payload"] ?? envelope?["payload"];
+                payload = payloadNode?.ToJsonString()
+                    ?? throw new InvalidOperationException("EventEnvelope missing Payload field.");
+                messageId = envelope?["MessageId"]?.GetValue<string>()
+                    ?? ea.BasicProperties?.MessageId;
+            }
+            catch (Exception)
+            {
+                // Старые сообщения хранят payload в body целиком.
+                payload = raw;
+                messageId = ea.BasicProperties?.MessageId;
+            }
+
             if (string.IsNullOrWhiteSpace(messageId))
-                throw new InvalidOperationException("MessageId is missing (publisher must set it).");
+                throw new InvalidOperationException("MessageId is missing.");
 
             using var scope = _sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
@@ -92,6 +113,7 @@ public sealed class PublishersEventsConsumer : BackgroundService
             var alreadyProcessed = await db.InboxMessages.AnyAsync(x => x.MessageId == messageId, _stoppingToken);
             if (alreadyProcessed)
             {
+                // Inbox блокирует повторную доставку RabbitMQ.
                 await tx.CommitAsync(_stoppingToken);
                 _ch!.BasicAck(ea.DeliveryTag, multiple: false);
                 return;
@@ -123,8 +145,8 @@ public sealed class PublishersEventsConsumer : BackgroundService
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Transient error. routingKey={Key}", ea.RoutingKey);
-            _ch!.BasicNack(ea.DeliveryTag, multiple: false, requeue: true);
+            _log.LogError(ex, "Failed to process publishers event {Key}", ea.RoutingKey);
+            _ch!.BasicNack(ea.DeliveryTag, false, requeue: false);
         }
     }
 
@@ -137,13 +159,18 @@ public sealed class PublishersEventsConsumer : BackgroundService
 
     private void EnsureQueues()
     {
+        if (_ch is null || _conn is null)
+            throw new InvalidOperationException("RabbitMQ channel is not initialized.");
+
+        var ch = _ch;
+
         const string queue = "catalog.events";
         const string dlx = "catalog.dlx";
         const string dlq = "catalog.events.dlq";
 
-        _ch.ExchangeDeclare(dlx, ExchangeType.Fanout, durable: true, autoDelete: false);
-        _ch.QueueDeclare(dlq, durable: true, exclusive: false, autoDelete: false);
-        _ch.QueueBind(dlq, dlx, routingKey: string.Empty);
+        ch.ExchangeDeclare(dlx, ExchangeType.Fanout, durable: true, autoDelete: false);
+        ch.QueueDeclare(dlq, durable: true, exclusive: false, autoDelete: false);
+        ch.QueueBind(dlq, dlx, routingKey: string.Empty);
 
         var queueArgs = new Dictionary<string, object>
         {
@@ -152,20 +179,21 @@ public sealed class PublishersEventsConsumer : BackgroundService
 
         try
         {
-            _ch.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+            ch.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
         }
         catch (RabbitMQ.Client.Exceptions.OperationInterruptedException)
         {
-            // Channel is closed after precondition failure; recreate and declare cleanly.
-            _ch?.Dispose();
-            _ch = _conn!.CreateModel();
+            // Несовпадение аргументов очереди закрывает channel.
+            ch.Dispose();
+            ch = _conn.CreateModel();
+            _ch = ch;
 
-            _ch.ExchangeDeclare(dlx, ExchangeType.Fanout, durable: true, autoDelete: false);
-            _ch.QueueDeclare(dlq, durable: true, exclusive: false, autoDelete: false);
-            _ch.QueueBind(dlq, dlx, routingKey: string.Empty);
+            ch.ExchangeDeclare(dlx, ExchangeType.Fanout, durable: true, autoDelete: false);
+            ch.QueueDeclare(dlq, durable: true, exclusive: false, autoDelete: false);
+            ch.QueueBind(dlq, dlx, routingKey: string.Empty);
 
-            _ch.QueueDelete(queue, ifUnused: false, ifEmpty: false);
-            _ch.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+            ch.QueueDelete(queue, ifUnused: false, ifEmpty: false);
+            ch.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
         }
     }
 }

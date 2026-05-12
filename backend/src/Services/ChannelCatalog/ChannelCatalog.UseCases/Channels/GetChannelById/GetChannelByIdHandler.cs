@@ -17,6 +17,9 @@ public sealed class GetChannelByIdHandler
                 x.ChannelId,
                 x.TelegramChannelId,
                 x.Title,
+                x.Topic,
+                x.Language,
+                x.PricePerPostRub,
                 x.IntakeMode,
                 x.OwnershipStatus))
             .FirstOrDefaultAsync(ct);

@@ -5,6 +5,13 @@ public sealed record GetPublisherDealsResult(
     Guid ChannelId,
     Guid AdvertiserUserId,
     string Status,
+    string FundingStatus,
+    Guid? ReservationId,
+    decimal Amount,
+    string Currency,
+    string PostText,
+    string? PostUrl,
+    DateTimeOffset? PublishedAtUtc,
     DateTimeOffset DesiredPublishAtUtc,
     DateTimeOffset CreatedAt
 );

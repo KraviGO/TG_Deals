@@ -21,6 +21,9 @@ public sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
 
         b.Property(x => x.TelegramChannelId).HasColumnName("telegram_channel_id").HasMaxLength(128).IsRequired();
         b.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
+        b.Property(x => x.Topic).HasColumnName("topic").HasMaxLength(80).IsRequired();
+        b.Property(x => x.Language).HasColumnName("language").HasMaxLength(16).IsRequired();
+        b.Property(x => x.PricePerPostRub).HasColumnName("price_per_post_rub").HasPrecision(18, 2).IsRequired();
 
         b.Property(x => x.IntakeMode).HasColumnName("intake_mode").IsRequired();
         b.Property(x => x.OwnershipStatus).HasColumnName("ownership_status").IsRequired();
@@ -28,9 +31,9 @@ public sealed class ChannelConfiguration : IEntityTypeConfiguration<Channel>
         b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
         b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        b.Property(x => x.VerificationCode).HasColumnName("verification_code").HasMaxLength(64);
-        b.Property(x => x.VerificationExpiresAt).HasColumnName("verification_expires_at");
-
         b.HasIndex(x => new { x.PublisherUserId, x.TelegramChannelId }).IsUnique();
+        b.HasIndex(x => x.Topic);
+        b.HasIndex(x => x.Language);
+        b.HasIndex(x => x.PricePerPostRub);
     }
 }

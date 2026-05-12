@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WalletEntity = Payments.Entities.Wallet.Wallet;
 using Payments.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Payments.UseCases.Common;
 
 namespace Payments.UseCases.Wallet.GetMyWallet;

@@ -1,11 +1,15 @@
 using Identity.Entities.Users;
 using Identity.UseCases.Abstractions.Auth;
 using Identity.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Identity.UseCases.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.UseCases.Auth.Login;
 
+/// <summary>
+/// Проверяет пароль и выдает access token.
+/// </summary>
 public sealed class LoginHandler
 {
     private readonly IIdentityDbContext _db;
@@ -28,6 +32,7 @@ public sealed class LoginHandler
         if (user.Status == UserStatus.Suspended)
             return Result<LoginResult>.Fail(Errors.UserSuspended);
 
+        // Неверный email и неверный пароль возвращают одинаковую ошибку.
         var ok = _hasher.Verify(cmd.Password, user.PasswordHash);
         if (!ok) return Result<LoginResult>.Fail(Errors.InvalidCredentials);
 

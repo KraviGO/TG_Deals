@@ -1,4 +1,5 @@
 using ChannelCatalog.UseCases.Channels.GetChannelById;
+using ChannelCatalog.UseCases.Channels.GetInternalChannelById;
 using ChannelCatalog.UseCases.Channels.SearchChannels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +11,7 @@ public static class ChannelCatalogPresentationModule
     {
         services.AddScoped<SearchChannelsHandler>();
         services.AddScoped<GetChannelByIdHandler>();
+        services.AddScoped<GetInternalChannelByIdHandler>();
         return services;
     }
 }

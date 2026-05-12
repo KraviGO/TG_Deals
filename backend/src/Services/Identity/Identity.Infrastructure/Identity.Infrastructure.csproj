@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Identity.UseCases\Identity.UseCases.csproj" />
     <ProjectReference Include="..\Identity.Entities\Identity.Entities.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Security\Marketplace.Security.csproj" />
   </ItemGroup>
 
   <ItemGroup>

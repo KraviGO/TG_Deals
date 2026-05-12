@@ -8,7 +8,7 @@ namespace ChannelCatalog.Infrastructure.Consumers.Publishers;
 
 public sealed class ChannelRegisteredHandler : IEventHandler
 {
-    public string RoutingKey => "publishers.channel.registered";
+    public string RoutingKey => "publishers.channel.registered.v1";
 
     private readonly CatalogDbContext _db;
 
@@ -19,6 +19,10 @@ public sealed class ChannelRegisteredHandler : IEventHandler
         var evt = JsonSerializer.Deserialize<ChannelRegisteredV1>(payloadJson)
                   ?? throw new InvalidOperationException("Cannot deserialize ChannelRegisteredV1.");
 
+        var topic = string.IsNullOrWhiteSpace(evt.Topic) ? "General" : evt.Topic;
+        var language = string.IsNullOrWhiteSpace(evt.Language) ? "ru" : evt.Language;
+        var pricePerPostRub = evt.PricePerPostRub.GetValueOrDefault(1000m);
+
         var existing = await _db.CatalogChannelsSet.FirstOrDefaultAsync(x => x.ChannelId == evt.ChannelId, ct);
 
         if (existing is null)
@@ -28,6 +32,9 @@ public sealed class ChannelRegisteredHandler : IEventHandler
                 evt.PublisherUserId,
                 evt.TelegramChannelId,
                 evt.Title,
+                topic,
+                language,
+                pricePerPostRub,
                 evt.IntakeMode,
                 evt.OwnershipStatus,
                 evt.OccurredAtUtc);
@@ -40,6 +47,9 @@ public sealed class ChannelRegisteredHandler : IEventHandler
                 evt.PublisherUserId,
                 evt.TelegramChannelId,
                 evt.Title,
+                topic,
+                language,
+                pricePerPostRub,
                 evt.IntakeMode,
                 evt.OwnershipStatus,
                 evt.OccurredAtUtc);

@@ -1,4 +1,5 @@
 using Deals.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Deals.UseCases.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,19 @@ public sealed class GetPublisherDealsHandler
             .Where(x => x.PublisherUserId == q.PublisherUserId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new GetPublisherDealsResult(
-                x.DealId, x.ChannelId, x.AdvertiserUserId, x.Status.ToString(), x.DesiredPublishAtUtc, x.CreatedAt))
+                x.DealId,
+                x.ChannelId,
+                x.AdvertiserUserId,
+                x.Status.ToString(),
+                x.FundingStatus.ToString(),
+                x.ReservationId,
+                x.Amount,
+                x.Currency,
+                x.PostText,
+                x.PostUrl,
+                x.PublishedAtUtc,
+                x.DesiredPublishAtUtc,
+                x.CreatedAt))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<GetPublisherDealsResult>>.Ok(items);

@@ -8,4 +8,5 @@ public interface IYooKassaClient
         CancellationToken ct);
 
     Task CaptureAsync(string yooKassaPaymentId, Guid idempotenceKey, CancellationToken ct);
+    Task<string?> GetPaymentStatusAsync(string yooKassaPaymentId, CancellationToken ct);
 }

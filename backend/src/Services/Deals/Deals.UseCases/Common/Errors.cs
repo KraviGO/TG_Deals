@@ -6,4 +6,5 @@ public static class Errors
     public const string NotFound = "NotFound";
     public const string Forbidden = "Forbidden";
     public const string InvalidState = "InvalidState";
+    public const string TelegramPublishFailed = "TelegramPublishFailed";
 }

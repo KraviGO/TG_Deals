@@ -7,7 +7,7 @@ namespace ChannelCatalog.Infrastructure.Consumers.Publishers;
 
 public sealed class ChannelOwnershipVerifiedHandler : IEventHandler
 {
-    public string RoutingKey => "publishers.channel.ownership_verified";
+    public string RoutingKey => "publishers.channel.ownership_verified.v1";
 
     private readonly CatalogDbContext _db;
 

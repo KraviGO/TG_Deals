@@ -1,19 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Deals.UseCases\Deals.UseCases.csproj" />
     <ProjectReference Include="..\Deals.Entities\Deals.Entities.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Kernel\Marketplace.Kernel.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Messaging\Marketplace.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Observability\Marketplace.Observability.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.ServiceAuth\Marketplace.ServiceAuth.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>
 
   <PropertyGroup>

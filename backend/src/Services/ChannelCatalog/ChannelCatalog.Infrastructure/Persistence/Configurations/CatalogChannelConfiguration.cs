@@ -18,6 +18,9 @@ public sealed class CatalogChannelConfiguration : IEntityTypeConfiguration<Catal
 
         b.Property(x => x.TelegramChannelId).HasColumnName("telegram_channel_id").HasMaxLength(128).IsRequired();
         b.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
+        b.Property(x => x.Topic).HasColumnName("topic").HasMaxLength(80).IsRequired();
+        b.Property(x => x.Language).HasColumnName("language").HasMaxLength(16).IsRequired();
+        b.Property(x => x.PricePerPostRub).HasColumnName("price_per_post_rub").HasPrecision(18, 2).IsRequired();
 
         b.Property(x => x.IntakeMode).HasColumnName("intake_mode").HasMaxLength(50).IsRequired();
         b.Property(x => x.OwnershipStatus).HasColumnName("ownership_status").HasMaxLength(50).IsRequired();
@@ -27,5 +30,8 @@ public sealed class CatalogChannelConfiguration : IEntityTypeConfiguration<Catal
 
         b.HasIndex(x => x.OwnershipStatus);
         b.HasIndex(x => x.IntakeMode);
+        b.HasIndex(x => x.Topic);
+        b.HasIndex(x => x.Language);
+        b.HasIndex(x => x.PricePerPostRub);
     }
 }

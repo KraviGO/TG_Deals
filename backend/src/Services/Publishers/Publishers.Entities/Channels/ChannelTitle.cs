@@ -1,5 +1,8 @@
 namespace Publishers.Entities.Channels;
 
+/// <summary>
+/// Название канала с ограничением длины.
+/// </summary>
 public sealed record ChannelTitle
 {
     public string Value { get; }

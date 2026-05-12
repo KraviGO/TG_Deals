@@ -1,7 +1,15 @@
+using Microsoft.AspNetCore.Authentication;
+
 namespace Marketplace.ServiceAuth.Options;
 
-public sealed record ServiceAuthOptions
+/// <summary>
+/// Настройки проверки X-Service-Token на внутренних HTTP endpoint'ах.
+/// Значения читаются из конфигурационной секции ServiceAuth.
+/// </summary>
+public sealed class ServiceAuthOptions : AuthenticationSchemeOptions
 {
-    public string Token { get; init; } = default!;
-    public string PathPrefix { get; init; } = "/api/v1/internal";
+    /// <summary>
+    /// Shared token, который внутренние клиенты передают в X-Service-Token.
+    /// </summary>
+    public string Token { get; set; } = default!;
 }

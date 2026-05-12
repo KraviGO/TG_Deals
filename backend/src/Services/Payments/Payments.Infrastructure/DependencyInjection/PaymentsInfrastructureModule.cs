@@ -1,13 +1,11 @@
-using Marketplace.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Payments.Infrastructure.Clock;
-using Payments.Infrastructure.Outbox;
 using Payments.Infrastructure.Persistence;
 using Payments.Infrastructure.YooKassa;
 using Payments.UseCases.Abstractions.Clock;
-using Payments.UseCases.Abstractions.Messaging;
+using Payments.UseCases.Abstractions.Fees;
 using Payments.UseCases.Abstractions.Persistence;
 using Payments.UseCases.Abstractions.YooKassa;
 
@@ -23,12 +21,13 @@ public static class PaymentsInfrastructureModule
         services.AddScoped<IPaymentsDbContext>(sp => sp.GetRequiredService<PaymentsDbContext>());
         services.AddSingleton<IClock, SystemClock>();
 
-        services.Configure<RabbitMqOptions>(cfg.GetSection("RabbitMq"));
-        services.AddScoped<IOutboxWriter, EfOutboxWriter>();
-        services.AddHostedService<OutboxPublisherWorker>();
+        services.Configure<PlatformFeesOptions>(cfg.GetSection("PlatformFees"));
+        services.Configure<YooKassaWebhookSecurityOptions>(cfg.GetSection("Webhooks:YooKassa"));
 
         services.Configure<YooKassaOptions>(cfg.GetSection("YooKassa"));
-        services.AddHttpClient<IYooKassaClient, YooKassaClient>();
+        services.AddHttpClient<IYooKassaClient, YooKassaClient>()
+            .AddHttpMessageHandler<Marketplace.Observability.Http.CorrelationIdDelegatingHandler>()
+            .AddStandardResilienceHandler();
 
         return services;
     }

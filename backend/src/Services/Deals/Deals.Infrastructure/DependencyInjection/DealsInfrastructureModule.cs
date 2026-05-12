@@ -1,14 +1,14 @@
 using Deals.Infrastructure.Catalog;
 using Deals.Infrastructure.Clock;
-using Deals.Infrastructure.Consumers;
-using Deals.Infrastructure.Consumers.Payments;
-using Deals.Infrastructure.Payments;
+using Deals.Infrastructure.TelegramPublisher;
+using Deals.Infrastructure.Wallet;
 using Deals.Infrastructure.Persistence;
 using Deals.UseCases.Abstractions.Catalog;
 using Deals.UseCases.Abstractions.Clock;
-using Deals.UseCases.Abstractions.Payments;
 using Deals.UseCases.Abstractions.Persistence;
-using Marketplace.Messaging.RabbitMq;
+using Deals.UseCases.Abstractions.Telegram;
+using Deals.UseCases.Abstractions.Wallet;
+using Marketplace.ServiceAuth.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,16 +26,21 @@ public static class DealsInfrastructureModule
         services.AddSingleton<IClock, SystemClock>();
 
         services.Configure<CatalogClientOptions>(cfg.GetSection("CatalogClient"));
-        services.Configure<PaymentClientOptions>(cfg.GetSection("PaymentClient"));
-        services.Configure<RabbitMqOptions>(cfg.GetSection("RabbitMq"));
+        services.Configure<WalletClientOptions>(cfg.GetSection("WalletClient"));
+        services.Configure<TelegramPublisherClientOptions>(cfg.GetSection("TelegramPublisherClient"));
+        services.Configure<ServiceAuthClientOptions>(cfg.GetSection(ServiceAuthClientOptions.SectionName));
 
-        services.AddHttpClient<ICatalogClient, CatalogClient>();
-        services.AddHttpClient<IPaymentsClient, PaymentClient>();
+        services.AddHttpClient<ICatalogClient, CatalogClient>()
+            .AddHttpMessageHandler<Marketplace.Observability.Http.CorrelationIdDelegatingHandler>()
+            .AddStandardResilienceHandler();
 
-        services.AddScoped<IEventHandler, PaymentAuthorizedHandler>();
-        services.AddScoped<IEventHandler, PaymentCapturedHandler>();
-        services.AddScoped<IEventHandler, PaymentCanceledHandler>();
-        services.AddHostedService<PaymentsEventsConsumer>();
+        services.AddHttpClient<IWalletClient, WalletClient>()
+            .AddHttpMessageHandler<Marketplace.Observability.Http.CorrelationIdDelegatingHandler>()
+            .AddStandardResilienceHandler();
+
+        services.AddHttpClient<ITelegramPostPublisher, TelegramPostPublisher>()
+            .AddHttpMessageHandler<Marketplace.Observability.Http.CorrelationIdDelegatingHandler>()
+            .AddStandardResilienceHandler();
 
         return services;
     }

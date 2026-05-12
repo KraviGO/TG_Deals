@@ -2,6 +2,9 @@ using Payments.Entities.Common;
 
 namespace Payments.Entities.TopUps;
 
+/// <summary>
+/// Пополнение кошелька рекламодателя через YooKassa.
+/// </summary>
 public sealed class TopUp : Entity
 {
     private TopUp() { }
@@ -20,6 +23,9 @@ public sealed class TopUp : Entity
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>
+    /// Создает пополнение до отправки платежа в YooKassa.
+    /// </summary>
     public static TopUp Create(Guid userId, decimal amount, string currency, DateTimeOffset nowUtc)
     {
         if (userId == Guid.Empty) throw new ArgumentException("UserId required");
@@ -39,6 +45,9 @@ public sealed class TopUp : Entity
         };
     }
 
+    /// <summary>
+    /// Сохраняет идентификатор платежа и ссылку подтверждения YooKassa.
+    /// </summary>
     public void SetYooKassa(string yooId, string? confirmationUrl, DateTimeOffset nowUtc)
     {
         YooKassaPaymentId = yooId;
@@ -46,12 +55,18 @@ public sealed class TopUp : Entity
         UpdatedAt = nowUtc;
     }
 
+    /// <summary>
+    /// Помечает пополнение успешным.
+    /// </summary>
     public void MarkSucceeded(DateTimeOffset nowUtc)
     {
         Status = TopUpStatus.Succeeded;
         UpdatedAt = nowUtc;
     }
 
+    /// <summary>
+    /// Помечает пополнение отмененным.
+    /// </summary>
     public void MarkCanceled(DateTimeOffset nowUtc)
     {
         Status = TopUpStatus.Canceled;

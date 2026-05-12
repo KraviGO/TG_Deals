@@ -11,6 +11,9 @@ public sealed class CatalogChannel : Entity
 
     public string TelegramChannelId { get; private set; } = default!;
     public string Title { get; private set; } = default!;
+    public string Topic { get; private set; } = default!;
+    public string Language { get; private set; } = default!;
+    public decimal PricePerPostRub { get; private set; }
 
     public string IntakeMode { get; private set; } = default!;
     public string OwnershipStatus { get; private set; } = default!;
@@ -23,6 +26,9 @@ public sealed class CatalogChannel : Entity
         Guid publisherUserId,
         string telegramChannelId,
         string title,
+        string topic,
+        string language,
+        decimal pricePerPostRub,
         string intakeMode,
         string ownershipStatus,
         DateTimeOffset nowUtc)
@@ -34,6 +40,9 @@ public sealed class CatalogChannel : Entity
             PublisherUserId = publisherUserId,
             TelegramChannelId = telegramChannelId,
             Title = title,
+            Topic = topic,
+            Language = language,
+            PricePerPostRub = pricePerPostRub,
             IntakeMode = intakeMode,
             OwnershipStatus = ownershipStatus,
             CreatedAt = nowUtc,
@@ -45,6 +54,9 @@ public sealed class CatalogChannel : Entity
         Guid publisherUserId,
         string telegramChannelId,
         string title,
+        string topic,
+        string language,
+        decimal pricePerPostRub,
         string intakeMode,
         string ownershipStatus,
         DateTimeOffset nowUtc)
@@ -52,6 +64,9 @@ public sealed class CatalogChannel : Entity
         PublisherUserId = publisherUserId;
         TelegramChannelId = telegramChannelId;
         Title = title;
+        Topic = topic;
+        Language = language;
+        PricePerPostRub = pricePerPostRub;
         IntakeMode = intakeMode;
         OwnershipStatus = ownershipStatus;
         UpdatedAt = nowUtc;
@@ -60,6 +75,12 @@ public sealed class CatalogChannel : Entity
     public void MarkVerified(DateTimeOffset nowUtc)
     {
         OwnershipStatus = "Verified";
+        UpdatedAt = nowUtc;
+    }
+
+    public void SetOwnershipStatus(string ownershipStatus, DateTimeOffset nowUtc)
+    {
+        OwnershipStatus = ownershipStatus;
         UpdatedAt = nowUtc;
     }
 }

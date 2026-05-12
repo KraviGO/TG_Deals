@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Identity.Presentation\Identity.Presentation.csproj" />
     <ProjectReference Include="..\Identity.Infrastructure\Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Observability\Marketplace.Observability.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Marketplace.Security\Marketplace.Security.csproj" />
   </ItemGroup>
 

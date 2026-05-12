@@ -1,4 +1,5 @@
 using Deals.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Deals.UseCases.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +19,18 @@ public sealed class GetMyDealsHandler
             .AsNoTracking()
             .Where(x => x.AdvertiserUserId == q.AdvertiserUserId)
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new GetMyDealsResult(x.DealId, x.ChannelId, x.Status.ToString(), x.DesiredPublishAtUtc, x.CreatedAt))
+            .Select(x => new GetMyDealsResult(
+                x.DealId,
+                x.ChannelId,
+                x.Status.ToString(),
+                x.FundingStatus.ToString(),
+                x.ReservationId,
+                x.Amount,
+                x.Currency,
+                x.PostUrl,
+                x.PublishedAtUtc,
+                x.DesiredPublishAtUtc,
+                x.CreatedAt))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<GetMyDealsResult>>.Ok(items);

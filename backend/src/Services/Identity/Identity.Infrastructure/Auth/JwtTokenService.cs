@@ -3,11 +3,16 @@ using System.Security.Claims;
 using System.Text;
 using Identity.Entities.Users;
 using Identity.UseCases.Abstractions.Auth;
+using Marketplace.Security.Common;
+using Marketplace.Security.Jwt;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Identity.Infrastructure.Auth;
 
+/// <summary>
+/// Выпускает JWT access token для пользовательских API.
+/// </summary>
 public sealed class JwtTokenService : IJwtTokenService
 {
     private readonly JwtOptions _opt;
@@ -18,11 +23,12 @@ public sealed class JwtTokenService : IJwtTokenService
 
     public string CreateAccessToken(User user)
     {
+        // Эти claim names читает Marketplace.Security во всех сервисах.
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new("role", user.Role.ToString())
+            new(ClaimNames.Role, user.Role.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opt.SigningKey));
@@ -39,12 +45,4 @@ public sealed class JwtTokenService : IJwtTokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-}
-
-public sealed class JwtOptions
-{
-    public string Issuer { get; init; } = default!;
-    public string Audience { get; init; } = default!;
-    public string SigningKey { get; init; } = default!;
-    public int ExpiresMinutes { get; init; } = 60;
 }

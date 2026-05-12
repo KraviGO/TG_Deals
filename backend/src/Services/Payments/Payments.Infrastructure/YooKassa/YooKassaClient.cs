@@ -2,21 +2,23 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Payments.UseCases.Abstractions.YooKassa;
 
 namespace Payments.Infrastructure.YooKassa;
 
+/// <summary>
+/// HTTP-клиент YooKassa API.
+/// </summary>
 public sealed class YooKassaClient : IYooKassaClient
 {
     private readonly HttpClient _http;
     private readonly YooKassaOptions _opt;
 
-    public YooKassaClient(HttpClient http, IConfiguration cfg)
+    public YooKassaClient(HttpClient http, IOptions<YooKassaOptions> opt)
     {
         _http = http;
-        _opt = cfg.GetSection("YooKassa").Get<YooKassaOptions>()
-               ?? throw new InvalidOperationException("YooKassa options missing");
+        _opt = opt.Value;
 
         _http.BaseAddress = new Uri("https://api.yookassa.ru/");
         var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_opt.ShopId}:{_opt.SecretKey}"));
@@ -28,6 +30,7 @@ public sealed class YooKassaClient : IYooKassaClient
         Guid idempotenceKey,
         CancellationToken ct)
     {
+        // capture=false создает двухстадийный платеж.
         using var msg = new HttpRequestMessage(HttpMethod.Post, "/v3/payments");
         msg.Headers.Add("Idempotence-Key", idempotenceKey.ToString());
 
@@ -70,5 +73,21 @@ public sealed class YooKassaClient : IYooKassaClient
 
         var res = await _http.SendAsync(msg, ct);
         res.EnsureSuccessStatusCode();
+    }
+
+    public async Task<string?> GetPaymentStatusAsync(string yooKassaPaymentId, CancellationToken ct)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Get, $"/v3/payments/{yooKassaPaymentId}");
+        var res = await _http.SendAsync(msg, ct);
+        if (!res.IsSuccessStatusCode)
+            return null;
+
+        await using var stream = await res.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var root = doc.RootElement;
+        if (!root.TryGetProperty("status", out var statusEl))
+            return null;
+
+        return statusEl.GetString();
     }
 }

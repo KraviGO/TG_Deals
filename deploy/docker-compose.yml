@@ -2,6 +2,9 @@ services:
   postgres:
     image: postgres:16
     container_name: marketplace-postgres
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -18,6 +21,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: marketplace-rabbitmq
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -26,92 +32,179 @@ services:
       - "${RABBITMQ_UI_PORT}:15672"
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  migrations:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: marketplace-migrations
+    profiles: ["staging"]
+    working_dir: /workspace/backend
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../backend:/workspace/backend
+      - ./scripts:/workspace/scripts:ro
+    command: ["/bin/bash", "/workspace/scripts/run-migrations.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  apigateway:
+    image: kravigo/tg-deals:apigateway-latest
+    build:
+      context: ../backend
+      dockerfile: src/Services/ApiGateway/ApiGateway.Host/Dockerfile
+    container_name: marketplace-apigateway
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
+    ports:
+      - "5010:8080"
+    depends_on:
+      - identity
+      - publishers
+      - channelcatalog
+      - payments
+      - deals
 
   identity:
+    image: kravigo/tg-deals:identity-latest
     build:
       context: ../backend
       dockerfile: src/Services/Identity/Identity.Host/Dockerfile
     container_name: marketplace-identity
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=identity_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__AutoMigrate: ${DATABASE_AUTO_MIGRATE:-false}
+      RateLimiting__PermitLimit: ${RATE_LIMIT_PERMIT_LIMIT:-120}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
-    ports:
-      - "${IDENTITY_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+        required: false
 
   publishers:
+    image: kravigo/tg-deals:publishers-latest
     build:
       context: ../backend
       dockerfile: src/Services/Publishers/Publishers.Host/Dockerfile
     container_name: marketplace-publishers
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=publishers_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__AutoMigrate: ${DATABASE_AUTO_MIGRATE:-false}
+      RateLimiting__PermitLimit: ${RATE_LIMIT_PERMIT_LIMIT:-120}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      ServiceAuth__Token: ${SERVICE_TOKEN}
+      TelegramPublisherClient__BaseUrl: http://telegrampublisher:8080
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASS}
-    ports:
-      - "${PUBLISHERS_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      telegrampublisher:
+        condition: service_started
+      migrations:
+        condition: service_completed_successfully
+        required: false
 
   channelcatalog:
+    image: kravigo/tg-deals:channelcatalog-latest
     build:
       context: ../backend
       dockerfile: src/Services/ChannelCatalog/ChannelCatalog.Host/Dockerfile
     container_name: marketplace-channelcatalog
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=catalog_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__AutoMigrate: ${DATABASE_AUTO_MIGRATE:-false}
+      RateLimiting__PermitLimit: ${RATE_LIMIT_PERMIT_LIMIT:-120}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
       ServiceAuth__Token: ${SERVICE_TOKEN}
-      ServiceAuth__PathPrefix: /api/v1/internal
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASS}
-    ports:
-      - "${CATALOG_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+        required: false
 
   payments:
+    image: kravigo/tg-deals:payments-latest
     build:
       context: ../backend
       dockerfile: src/Services/Payments/Payments.Host/Dockerfile
     container_name: marketplace-payments
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=payments_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__AutoMigrate: ${DATABASE_AUTO_MIGRATE:-false}
+      RateLimiting__PermitLimit: ${RATE_LIMIT_PERMIT_LIMIT:-120}
+      PlatformFees__PlatformFeeBps: ${PLATFORM_FEE_BPS:-1000}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
       ServiceAuth__Token: ${SERVICE_TOKEN}
-      ServiceAuth__PathPrefix: /api/v1/internal
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__Username: ${RABBITMQ_USER}
@@ -119,38 +212,52 @@ services:
       YooKassa__ShopId: ${YOOKASSA_SHOP_ID}
       YooKassa__SecretKey: ${YOOKASSA_SECRET_KEY}
       YooKassa__ReturnUrl: ${YOOKASSA_RETURN_URL}
-      Webhooks__YooKassa__Secret: ${YOOKASSA_WEBHOOK_SECRET}
-    ports:
-      - "${PAYMENTS_PORT}:8080"
+      Webhooks__YooKassa__RequireStatusVerification: ${YOOKASSA_REQUIRE_STATUS_VERIFICATION:-true}
+      Webhooks__YooKassa__AllowedIps__0: ${YOOKASSA_ALLOWED_IP_1:-}
+      Webhooks__YooKassa__AllowedIps__1: ${YOOKASSA_ALLOWED_IP_2:-}
+      Webhooks__YooKassa__AllowedIps__2: ${YOOKASSA_ALLOWED_IP_3:-}
+      Webhooks__YooKassa__AllowedIps__3: ${YOOKASSA_ALLOWED_IP_4:-}
+      Webhooks__YooKassa__AllowedIps__4: ${YOOKASSA_ALLOWED_IP_5:-}
+      Webhooks__YooKassa__AllowedIps__5: ${YOOKASSA_ALLOWED_IP_6:-}
+      Webhooks__YooKassa__AllowedIps__6: ${YOOKASSA_ALLOWED_IP_7:-}
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+        required: false
 
   deals:
+    image: kravigo/tg-deals:deals-latest
     build:
       context: ../backend
       dockerfile: src/Services/Deals/Deals.Host/Dockerfile
     container_name: marketplace-deals
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:8080
+      Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: ${FRONTEND_URL:-http://62.109.17.214:3000}
+      Cors__AllowedOrigins__2: ${FRONTEND_URL_2:-http://62.109.17.214}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=deals_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__AutoMigrate: ${DATABASE_AUTO_MIGRATE:-false}
+      RateLimiting__PermitLimit: ${RATE_LIMIT_PERMIT_LIMIT:-120}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
       ServiceAuth__Token: ${SERVICE_TOKEN}
-      ServiceAuth__PathPrefix: /api/v1/internal
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASS}
       WalletClient__BaseUrl: http://payments:8080
-      PaymentClient__BaseUrl: http://payments:8080
       CatalogClient__BaseUrl: http://channelcatalog:8080
-    ports:
-      - "${DEALS_PORT}:8080"
+      TelegramPublisherClient__BaseUrl: http://telegrampublisher:8080
     depends_on:
       postgres:
         condition: service_healthy
@@ -160,6 +267,45 @@ services:
         condition: service_started
       channelcatalog:
         condition: service_started
+      telegrampublisher:
+        condition: service_started
+      migrations:
+        condition: service_completed_successfully
+        required: false
+
+  telegrampublisher:
+    image: kravigo/tg-deals:telegrampublisher-latest
+    ports:
+      - "${TELEGRAM_PUBLISHER_PORT}:8080"
+    build:
+      context: ../telegram-publisher
+      dockerfile: Dockerfile
+    container_name: marketplace-telegrampublisher
+    profiles: ["dev", "staging"]
+    env_file:
+      - .env
+    environment:
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_MODE: ${TELEGRAM_BOT_MODE:-polling}
+      TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL:-}
+      TELEGRAM_DB_PATH: /data/telegram_publisher.db
+    volumes:
+      - tgpublisher_data:/data
+
+  frontend:
+    image: kravigo/tg-deals:frontend-latest
+    build:
+      context: ../frontend/tg-deal
+      dockerfile: Dockerfile
+      args:
+        VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL:-http://localhost:5010}
+        VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME:-@tg_deal_bot}
+    container_name: marketplace-frontend
+    profiles: ["dev", "staging"]
+    ports:
+      - "3000:80"
 
 volumes:
   pgdata:
+  tgpublisher_data:

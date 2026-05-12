@@ -1,9 +1,13 @@
 using Identity.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Identity.UseCases.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.UseCases.Auth.Me;
 
+/// <summary>
+/// Возвращает профиль текущего пользователя.
+/// </summary>
 public sealed class MeHandler
 {
     private readonly IIdentityDbContext _db;

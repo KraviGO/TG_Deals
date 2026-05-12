@@ -2,16 +2,26 @@ using Microsoft.EntityFrameworkCore;
 using Payments.Entities.TopUps;
 using Payments.Entities.Wallet;
 using WalletEntity = Payments.Entities.Wallet.Wallet;
+using Payments.UseCases.Abstractions.Clock;
 using Payments.UseCases.Abstractions.Persistence;
+using Marketplace.Kernel.Results;
 using Payments.UseCases.Common;
 
 namespace Payments.UseCases.TopUps.ProcessTopUpWebhook;
 
+/// <summary>
+/// Применяет webhook YooKassa к пополнению.
+/// </summary>
 public sealed class ProcessTopUpWebhookHandler
 {
     private readonly IPaymentsDbContext _db;
+    private readonly IClock _clock;
 
-    public ProcessTopUpWebhookHandler(IPaymentsDbContext db) => _db = db;
+    public ProcessTopUpWebhookHandler(IPaymentsDbContext db, IClock clock)
+    {
+        _db = db;
+        _clock = clock;
+    }
 
     public async Task<Result> Handle(ProcessTopUpWebhookCommand cmd, CancellationToken ct)
     {
@@ -25,28 +35,35 @@ public sealed class ProcessTopUpWebhookHandler
         {
             if (topup.Status == TopUpStatus.Succeeded) return Result.Ok();
 
-            topup.MarkSucceeded(DateTimeOffset.UtcNow);
+            var now = _clock.UtcNow;
+            topup.MarkSucceeded(now);
 
+            // Успешное пополнение увеличивает Available рекламодателя.
             var wallet = await _db.Wallets.FirstOrDefaultAsync(x => x.UserId == topup.UserId, ct);
             if (wallet is null)
             {
-                wallet = WalletEntity.Create(topup.UserId, topup.Currency, DateTimeOffset.UtcNow);
+                wallet = WalletEntity.Create(topup.UserId, topup.Currency, now);
                 await _db.AddWalletAsync(wallet, ct);
             }
 
-            wallet.Credit(topup.Amount, DateTimeOffset.UtcNow);
+            wallet.Credit(topup.Amount, now);
 
-            await _db.AddWalletTransactionAsync(WalletTransaction.CreateTopUp(topup.UserId, topup.TopUpId, topup.Amount, topup.Currency, DateTimeOffset.UtcNow), ct);
+            await _db.AddWalletTransactionAsync(WalletTransaction.CreateTopUp(
+                topup.UserId,
+                topup.TopUpId,
+                topup.Amount,
+                topup.Currency,
+                now), ct);
+
             await _db.SaveChangesAsync(ct);
 
-            // TODO: outbox wallet.topup.succeeded.v1
             return Result.Ok();
         }
 
         if (evt == "payment.canceled")
         {
             if (topup.Status == TopUpStatus.Canceled) return Result.Ok();
-            topup.MarkCanceled(DateTimeOffset.UtcNow);
+            topup.MarkCanceled(_clock.UtcNow);
             await _db.SaveChangesAsync(ct);
             return Result.Ok();
         }

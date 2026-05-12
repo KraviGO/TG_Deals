@@ -1,0 +1,3 @@
+namespace Payments.UseCases.PublisherWallet.GetMyPublisherLedgerEntries;
+
+public sealed record GetMyPublisherLedgerEntriesQuery(Guid PublisherUserId);

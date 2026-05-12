@@ -22,91 +22,15 @@ namespace Payments.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Marketplace.Messaging.Outbox.OutboxMessage", b =>
+            modelBuilder.Entity("Payments.Entities.PublisherLedger.PublisherLedgerEntry", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("attempt_count");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("event_type");
-
-                    b.Property<string>("Exchange")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("exchange");
-
-                    b.Property<string>("LastError")
-                        .HasColumnType("text")
-                        .HasColumnName("last_error");
-
-                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                    b.Property<DateTimeOffset?>("AvailableAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("next_attempt_at");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("payload_json");
-
-                    b.Property<DateTimeOffset?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("published_at");
-
-                    b.Property<string>("RoutingKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("routing_key");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("integer")
-                        .HasColumnName("version");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NextAttemptAt");
-
-                    b.HasIndex("OccurredAt");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("outbox_messages", (string)null);
-                });
-
-            modelBuilder.Entity("Payments.Entities.Payments.Payment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AdvertiserUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("advertiser_user_id");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<string>("ConfirmationUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("confirmation_url");
+                        .HasColumnName("available_at");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -122,9 +46,25 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deal_id");
 
-                    b.Property<Guid>("PaymentId")
+                    b.Property<Guid>("EntryId")
                         .HasColumnType("uuid")
-                        .HasColumnName("payment_id");
+                        .HasColumnName("entry_id");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("gross_amount");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("platform_fee_amount");
+
+                    b.Property<decimal>("PublisherAmount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("publisher_amount");
+
+                    b.Property<Guid>("PublisherUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("publisher_user_id");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -134,25 +74,106 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<string>("YooKassaPaymentId")
+                    b.HasKey("Id");
+
+                    b.HasIndex("DealId")
+                        .IsUnique();
+
+                    b.HasIndex("EntryId")
+                        .IsUnique();
+
+                    b.HasIndex("PublisherUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("publisher_ledger_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Entities.PublisherLedger.PublisherWallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Available")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("available");
+
+                    b.Property<string>("Currency")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("yookassa_payment_id");
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<decimal>("PaidOut")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("paid_out");
+
+                    b.Property<Guid>("PublisherUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("publisher_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("wallet_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdvertiserUserId");
-
-                    b.HasIndex("DealId");
-
-                    b.HasIndex("PaymentId")
+                    b.HasIndex("PublisherUserId")
                         .IsUnique();
 
-                    b.HasIndex("YooKassaPaymentId")
+                    b.HasIndex("WalletId")
                         .IsUnique();
 
-                    b.ToTable("payments", (string)null);
+                    b.ToTable("publisher_wallets", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Entities.PublisherLedger.PublisherWithdrawal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("DestinationCardMask")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("destination_card_mask");
+
+                    b.Property<Guid>("PublisherUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("publisher_user_id");
+
+                    b.Property<Guid>("WithdrawalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("withdrawal_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublisherUserId");
+
+                    b.HasIndex("WithdrawalId")
+                        .IsUnique();
+
+                    b.ToTable("publisher_withdrawals", (string)null);
                 });
 
             modelBuilder.Entity("Payments.Entities.TopUps.TopUp", b =>
@@ -238,6 +259,10 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deal_id");
 
+                    b.Property<Guid>("PublisherUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("publisher_user_id");
+
                     b.Property<Guid>("ReservationId")
                         .HasColumnType("uuid")
                         .HasColumnName("reservation_id");
@@ -258,6 +283,8 @@ namespace Payments.Infrastructure.Migrations
 
                     b.HasIndex("DealId")
                         .IsUnique();
+
+                    b.HasIndex("PublisherUserId");
 
                     b.HasIndex("ReservationId")
                         .IsUnique();
@@ -362,6 +389,49 @@ namespace Payments.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("wallet_transactions", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Entities.Webhooks.YooKassaWebhookInboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("message_id");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("RemoteIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("remote_ip");
+
+                    b.Property<string>("YooKassaPaymentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("yookassa_payment_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageId")
+                        .IsUnique();
+
+                    b.HasIndex("ProcessedAt");
+
+                    b.ToTable("yookassa_webhook_inbox", (string)null);
                 });
 #pragma warning restore 612, 618
         }
